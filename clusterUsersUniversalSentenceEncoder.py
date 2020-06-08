@@ -17,20 +17,21 @@
 ###############################################################################
 
 import ntpath
-import pickle
-import hdbscan
+import sys
+from typing import Callable
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import tensorflow_hub as hub
+from hdbscan import HDBSCAN
 from tqdm import tqdm
 from umap import UMAP
-from typing import Callable, Iterable
-import tensorflow_hub as hub
-import sys
 
-def clusterUsers(df, embed: Callable, min_tweets=3, user_col="username",
-                 tweet_col="norm_tweet", save_at="temp.npz",
-                 min_dist=0.0, n_neighbors=90, **kwargs):
+
+def cluster_users(df, encoder: Callable, min_tweets=3, user_col="username",
+                  tweet_col="norm_tweet", save_at="temp.npz",
+                  min_dist=0.0, n_neighbors=90, **kwargs):
     gs = df.groupby(user_col)
     users = list()
     vectors = list()
@@ -39,7 +40,7 @@ def clusterUsers(df, embed: Callable, min_tweets=3, user_col="username",
             continue
         try:
             tweets = frame[tweet_col]
-            vec = np.mean(np.array(embed(tweets.tolist())), axis=0)
+            vec = np.mean(np.array(encoder(tweets.tolist())), axis=0)
             users.append(user)
             vectors.append(vec)
         except Exception as e:
@@ -64,15 +65,17 @@ def clusterUsers(df, embed: Callable, min_tweets=3, user_col="username",
     clusterer = cluster_embeddings(standard_embeddings, **kwargs)
     params['clusters'] = clusterer.labels_
     params["allow_pickle"] = True
-    np.savez(open(save_at + '.cluster', 'wb'), users=np.array(users), vectors=np.array(vectors), umap=np.array(standard_embeddings), clusters=np.array(clusterer.labels_))
+    np.savez(open(save_at + '.cluster', 'wb'), users=np.array(users), vectors=np.array(vectors),
+             umap=np.array(standard_embeddings), clusters=np.array(clusterer.labels_))
 
-    outputFile = open(save_at + '.clusters.txt', mode='w')
+    output_file = open(save_at + '.clusters.txt', mode='w')
     for i in range(len(clusterer.labels_)):
-        outputFile.write(str(users[i]) + '\t' + str(clusterer.labels_[i]) + '\n')
-    outputFile.close()
+        output_file.write(str(users[i]) + '\t' + str(clusterer.labels_[i]) + '\n')
+    output_file.close()
+
 
 def plot_clusters_no_labels(embeddings_path, clusters_col="clusters", green_label="pro", red_label='anti', align=False,
-                  title=None, include_ratio=True, labeled_only=False):
+                            title=None, include_ratio=True, labeled_only=False):
     if title is None:
         title = ntpath.basename(embeddings_path).split('.')[0]
     f = np.load(embeddings_path)
@@ -106,7 +109,8 @@ def plot_clusters_no_labels(embeddings_path, clusters_col="clusters", green_labe
     plt.show()
     return scatter
 
-def align_clusters_with_labels(df, allow_multiple_clusters=False):
+
+def align_clusters_with_labels(df, allow_multiple_clusters=True):
     df = df[df.clusters >= 0]
     g = df.groupby(["label", "clusters"]).count().sort_values("username", ascending=False)
 
@@ -115,8 +119,9 @@ def align_clusters_with_labels(df, allow_multiple_clusters=False):
         label, cluster = g.index[0]
         d[cluster] = label
         g = g.reset_index()
-        g = g[(g.label != label) & (g.clusters != cluster)].set_index(["label", "clusters"]).sort_values("username",
-                                                                                                         ascending=False)
+        g = g[(g.label != label) & (g.clusters != cluster)] \
+            .set_index(["label", "clusters"]) \
+            .sort_values("username", ascending=False)
     unlabeled_clusters = set(df.clusters) - set(d.keys())
     if allow_multiple_clusters and len(unlabeled_clusters) > 0:
         g = df.groupby(["label", "clusters"]).count().sort_values("username", ascending=False).reset_index()
@@ -142,7 +147,7 @@ def cluster_embeddings(standard_embedding,
         min_cluster_size = max(10, len(standard_embedding) // min_cluster_size_div)
     if min_samples is None:
         min_samples = max(10, len(standard_embedding) // min_samples_div)
-    clusterer = hdbscan.HDBSCAN(
+    clusterer = HDBSCAN(
         min_samples=min_samples,
         min_cluster_size=min_cluster_size, **kwargs
     ).fit(standard_embedding)
@@ -152,11 +157,12 @@ def cluster_embeddings(standard_embedding,
     return clusterer
 
 
-embed = hub.load('https://tfhub.dev/google/universal-sentence-encoder/4') # You can use different encoders here
+if __name__ == "__main__":
+    embed = hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')  # You can use different encoders here
 
-inputFile = sys.argv[1] # ex. trump.tsv
-df_text = pd.read_csv(inputFile, header=None, usecols=[0, 1], error_bad_lines=False, sep='\t')
-df_text.columns = ['User', 'Text']
-df_text = df_text.apply(lambda s: s.str.strip())
-clusterUsers(df_text, embed, user_col='User', tweet_col='Text', save_at=inputFile+'.npz')
-plot_clusters_no_labels(inputFile+'.npz.cluster')
+    inputFile = sys.argv[1]  # ex. trump.tsv
+    df_text = pd.read_csv(inputFile, header=None, usecols=[0, 1], error_bad_lines=False, sep='\t')
+    df_text.columns = ['User', 'Text']
+    df_text = df_text.apply(lambda s: s.str.strip())
+    cluster_users(df_text, embed, user_col='User', tweet_col='Text', save_at=inputFile + '.npz')
+    plot_clusters_no_labels(inputFile + '.npz.cluster')
