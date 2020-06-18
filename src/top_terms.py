@@ -79,7 +79,7 @@ def pipeline(df1, df2, out1, out2=None, text_col='text'):
         valence(tf2, tfg2, tf1, tfg1, out2)
 
 
-def plot_worcloud(file, mask_path):
+def plot_worcloud(file, mask_path=None):
     params = dict(width=800, height=800,
                   background_color='white',
                   stopwords=set(STOPWORDS),
