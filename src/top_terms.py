@@ -1,7 +1,7 @@
 import os
 import re
 from collections import Counter
-
+from ar_wordcloud import ArabicWordCloud
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -51,7 +51,7 @@ def sort_scores(file):
     ).sort_values(
         "score", ascending=False
     ).to_csv(
-        file.replace("txt", "csv"), sep='\t', index=None
+        file.replace("txt", "tsv"), sep='\t', index=None
     )
     os.remove(file)
 
@@ -79,14 +79,14 @@ def pipeline(df1, df2, out1, out2=None, text_col='text'):
         valence(tf2, tfg2, tf1, tfg1, out2)
 
 
-def plot_worcloud(file, mask_path=None):
+def plot_worcloud(file, mask_path=None, arabic=False):
     params = dict(width=800, height=800,
                   background_color='white',
                   stopwords=set(STOPWORDS),
                   min_font_size=10)
     if mask_path is not None:
         params["mask"] = np.array(Image.open(mask_path))
-    wordcloud = WordCloud(**params)
+    wordcloud = (ArabicWordCloud if arabic else WordCloud)(**params)
 
     scores = pd.read_csv(file, sep='\t')[:500].set_index("term").to_dict()["score"]
     fig = wordcloud.generate_from_frequencies(scores)
