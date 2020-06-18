@@ -1,4 +1,5 @@
 import os
+import re
 from collections import Counter
 
 import matplotlib.pyplot as plt
@@ -78,6 +79,24 @@ def pipeline(df1, df2, out1, out2=None, text_col='text'):
         valence(tf2, tfg2, tf1, tfg1, out2)
 
 
+def plot_worcloud(file, mask_path):
+    params = dict(width=800, height=800,
+                  background_color='white',
+                  stopwords=set(STOPWORDS),
+                  min_font_size=10)
+    if mask_path is not None:
+        params["mask"] = np.array(Image.open(mask_path))
+    wordcloud = WordCloud(**params)
+
+    scores = pd.read_csv(file, sep='\t')[:500].set_index("term").to_dict()["score"]
+    fig = wordcloud.generate_from_frequencies(scores)
+    plt.figure(figsize=(8, 8), facecolor=None)
+    plt.imshow(wordcloud)
+    plt.axis("off")
+    plt.tight_layout(pad=0)
+    plt.savefig(f"{file}.png")
+
+
 def calculate_top_terms(clusters_path, tweets_path, prefix, user_col, text_col, use_clusters=True, mask_path=None):
     enf = np.load(clusters_path)
     df = pd.read_pickle(tweets_path)
@@ -102,19 +121,5 @@ def calculate_top_terms(clusters_path, tweets_path, prefix, user_col, text_col, 
              text_col=text_col
              )
 
-    params = dict(width=800, height=800,
-                  background_color='white',
-                  stopwords=set(STOPWORDS),
-                  min_font_size=10)
-    if mask_path is not None:
-        params["mask"] = np.array(Image.open(mask_path))
-    wordcloud = WordCloud(**params)
-
-    for i, o in enumerate([o1, o2]):
-        scores = pd.read_csv(o, sep='\t')[:500].set_index("term").to_dict()["score"]
-        fig = wordcloud.generate_from_frequencies(scores)
-        plt.figure(figsize=(8, 8), facecolor=None)
-        plt.imshow(wordcloud)
-        plt.axis("off")
-        plt.tight_layout(pad=0)
-        plt.savefig(f"{i}.png")
+    for o in enumerate(o1, o2):
+        plot_worcloud(o, mask_path=mask_path)
