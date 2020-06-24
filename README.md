@@ -16,6 +16,6 @@ in different contexts.
 #### Requirements
 Note: This work was tested using umap-learn 0.3.x. Newer versions might not work as expected.
 - [umap-learn 0.3.x](https://pypi.org/project/umap-learn/0.3.10/)
-- [hdbscan 0.8.x](https://pypi.org/project/hdbscan/)
-- [tensorflow-hub 0.8.x](https://pypi.org/project/tensorflow-hub/)
-- [tensorflow-text 2.2.x](https://pypi.org/project/tensorflow-text/)
+- [hdbscan 0.8.x](https://pypi.org/project/hdbscan/0.8.26/)
+- [tensorflow-hub 0.8.x](https://pypi.org/project/tensorflow-hub/0.8.0/)
+- [tensorflow-text 2.2.x](https://pypi.org/project/tensorflow-text/2.2.1/)
