@@ -1,11 +1,12 @@
 import os
 import re
 from collections import Counter
-from ar_wordcloud import ArabicWordCloud
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from PIL import Image
+from ar_wordcloud import ArabicWordCloud
 from joblib import Parallel, delayed
 from tqdm.notebook import tqdm
 from wordcloud import STOPWORDS, WordCloud
@@ -82,14 +83,26 @@ def pipeline(df1, df2, out1, out2=None, text_col='text'):
 def plot_worcloud(file, mask_path=None, arabic=False):
     params = dict(width=800, height=800,
                   background_color='white',
-                  stopwords=set(STOPWORDS),
                   min_font_size=10)
     if mask_path is not None:
         params["mask"] = np.array(Image.open(mask_path))
-    wordcloud = (ArabicWordCloud if arabic else WordCloud)(**params)
 
-    scores = pd.read_csv(file, sep='\t')[:500].set_index("term").to_dict()["score"]
-    fig = wordcloud.generate_from_frequencies(scores)
+    scores = pd.read_csv(file, sep='\t').dropna()
+    is_en = lambda x: bool(re.search('[a-z]', x.lower()))
+    if arabic:
+        import pickle
+        params['stopwords'] = pickle.load(open('AR_STOPWORDS.pkl', 'rb'))
+        scores = scores[~scores.term.apply(is_en)]
+    else:
+        params['stopwords'] = set(STOPWORDS)
+        scores = scores[scores.term.apply(is_en)]
+    scores = scores[:500].set_index("term").to_dict()["score"]
+    if arabic:
+        wordcloud = ArabicWordCloud(**params)
+        fig = wordcloud.from_dict(scores)
+    else:
+        wordcloud = WordCloud(**params)
+        fig = wordcloud.generate_from_frequencies(scores)
     plt.figure(figsize=(8, 8), facecolor=None)
     plt.imshow(wordcloud)
     plt.axis("off")

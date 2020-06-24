@@ -13,3 +13,9 @@
 each cluster to show how people talk about the same issue
 in different contexts.
  ![](wc.png)
+#### Requirements
+Note: This work was tested using umap-learn 0.3.x. Newer versions might not work as expected.
+- [umap-learn 0.3.x](https://pypi.org/project/umap-learn/0.3.10/)
+- [hdbscan](https://pypi.org/project/hdbscan/)
+- [tensorflow-hub 0.8.x](https://pypi.org/project/tensorflow-hub/)
+- [tensorflow-text 2.2.x](https://pypi.org/project/tensorflow-text/)
