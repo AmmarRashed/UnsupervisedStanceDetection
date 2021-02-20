@@ -55,6 +55,7 @@ class Clusterer:
         return pickle.load(open(path, 'rb')).plot()
 
     def plot(self, labels_col="clusters"):
+        sns.set(context='notebook', style='white', rc={'figure.figsize': (15, 15)})
         return Projector.plot(embeddings=self._params["umap"], labels=self._params[labels_col])
 
     def inject_labels(self, users, labels):
@@ -70,7 +71,7 @@ class Clusterer:
         labels = labels[ind]
 
         df = pd.DataFrame(
-            {"username": users, "labels": labels}
+            {"username": users, "label": labels}
         ).merge(
             pd.DataFrame({"username": self._params["users"], "clusters": self._params["clusters"]})
         )
@@ -108,7 +109,7 @@ class Clusterer:
         y = y[ind]
         p = p[ind]
 
-        s = set(y)
+        s = list(set(y))
         if report:
             return pd.DataFrame(classification_report(y, p, labels=s, output_dict=True))
 
@@ -132,7 +133,8 @@ class Clusterer:
             plt.savefig(plot_path, bbox_inches='tight')
             plt.close()
 
-            score = c.evaluate()
+            score = c.evaluate(report=False)
             results.setdefault(min_dist, dict())
             results[min_dist][n_neighbors] = score
-        return results
+        return results, Projector.plot_grid_search_heatmap(results,
+                                                           heatmap_destination=os.path.join(trials_dir, 'hm.png'))
