@@ -27,6 +27,7 @@ The method consists of five main steps:
 4. **Projection**: Project user vectors to lower dimensional space using UMAP
 5. **Clustering**: Cluster the projected vectors using HDBSCAN
 
+![Methodology Diagram](methodology_diagram.png)
 
 ## Key Features
 
